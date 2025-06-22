@@ -20,13 +20,12 @@ export default function LoginPage() {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      await loginUserApi(data);
+      const tokens = await loginUserApi(data);
       toast.success("Login successful!");
       const accessToken = Cookies.get(READ_ENV.COOKIE_AUTH);
-      const refreshToken = Cookies.get(READ_ENV.COOKIE_REFRESH);
+      // const refreshToken = Cookies.get(READ_ENV.COOKIE_REFRESH);
       // const user = JSON.parse(data?.value || "{}");
-      console.log("AppWrapper user", accessToken);
-      console.log("AppWrapper refreshToken", refreshToken);
+      console.log("AppWrapper user", tokens);
       if (accessToken) {
         const decodedToken: User = jwtDecode(accessToken);
         if (decodedToken) {
@@ -40,6 +39,13 @@ export default function LoginPage() {
           });
           console.log("Decoded user:", decodedToken);
         }
+      }
+      if (tokens?.data?.refresh_token) {
+        // set local storage
+        localStorage.setItem(
+          READ_ENV.COOKIE_REFRESH,
+          tokens.data.refresh_token
+        );
       }
       navigate("/");
     } catch (error: unknown) {
@@ -94,6 +100,7 @@ export default function LoginPage() {
                   message: "Password must be at least 6 characters",
                 },
               })}
+              type="password"
             />
             <Field.ErrorText>{errors.password?.message}</Field.ErrorText>
           </Field.Root>

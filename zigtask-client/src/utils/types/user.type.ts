@@ -21,8 +21,8 @@ export interface LoginDto {
 
 export interface LoginResponse extends AxiosResponse {
   data: {
-    accessToken: string;
-    refreshToken: string;
+    access_token: string;
+    refresh_token: string;
   };
 }
 

@@ -39,5 +39,5 @@ export default function AppWrapper({
     }
   }, []);
 
-  return <div>{children}</div>;
+  return <div className="light">{children}</div>;
 }

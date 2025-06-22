@@ -162,4 +162,64 @@ export class AuthService {
 
     return loginSession;
   }
+
+  async logout(
+    userId: string,
+    refreshToken: string,
+    accessToken: string,
+  ): Promise<void> {
+    const loginSession = await this.loginSessionRepository.findOne({
+      where: { refreshToken, accessToken, user: { id: userId } },
+    });
+    if (!loginSession) {
+      throw new UnauthorizedException('Invalid token');
+    }
+    await this.loginSessionRepository.update(
+      { id: loginSession.id },
+      { isRevoked: true },
+    );
+    console.log('User logged out successfully');
+  }
+
+  async refreshAccessToken(tokenDto: Tokens): Promise<Tokens> {
+    const loginSession = await this.loginSessionRepository.findOne({
+      where: {
+        refreshToken: tokenDto.refresh_token,
+        accessToken: tokenDto.access_token,
+      },
+    });
+
+    if (!loginSession) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (new Date(loginSession.refreshTokenExp) < new Date()) {
+      await this.loginSessionRepository.update(
+        { id: loginSession.id },
+        { isRevoked: true },
+      );
+      throw new UnauthorizedException(
+        'Refresh token has expired. Please login',
+      );
+    }
+    const checkValidAccessToken =
+      loginSession.accessToken === tokenDto.access_token;
+    if (!checkValidAccessToken) {
+      throw new UnauthorizedException('Invalid access token');
+    }
+
+    const newAccessToken = await this.createAccessToken(loginSession.user);
+    // create new
+    const [newRefreshToken, refreshAccessToken] =
+      await this.createNewRefreshToken();
+    console.log('refresh token', loginSession);
+
+    await this.loginSessionRepository.update(loginSession.id, {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      refreshTokenExp: refreshAccessToken,
+    });
+
+    return { access_token: newAccessToken, refresh_token: newRefreshToken };
+  }
 }

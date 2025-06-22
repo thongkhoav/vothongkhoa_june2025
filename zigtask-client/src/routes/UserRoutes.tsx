@@ -1,26 +1,35 @@
-import { Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { lazy, Suspense } from "react";
-import { PATH } from "@/utils/constants/paths";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense, type ReactNode } from "react";
 import Loading from "@/components/custom/Loading";
 import useAuthStore from "@/store/useAuthStore";
 const TaskListPage = lazy(() => import("@/pages/user/TaskListPage"));
 
-export default function LoginRoutes() {
+interface UserRouteProps {
+  children: ReactNode;
+}
+
+export function UserRoute({ children }: UserRouteProps) {
   const user = useAuthStore((state) => state.user);
 
-  // Redirect to login if user is not authenticated
   if (!user) {
-    return <Navigate to={PATH.LOGIN} replace />;
+    return <Navigate to="/login" replace />;
   }
+
+  return <>{children}</>;
+}
+
+export default function UserRoutes() {
   return (
     <Routes>
       <Route path="/">
         <Route
           index
           Component={() => (
-            <Suspense fallback={<Loading />}>
-              <TaskListPage />
-            </Suspense>
+            <UserRoute>
+              <Suspense fallback={<Loading />}>
+                <TaskListPage />
+              </Suspense>
+            </UserRoute>
           )}
         />
       </Route>

@@ -5,9 +5,11 @@ import { jwtDecode } from "jwt-decode";
 import useAuthStore from "@/store/useAuthStore";
 import { READ_ENV } from "../constants";
 import { useNavigate } from "react-router-dom";
+import useRefreshToken from "./useRefreshToken";
 
 const useAxiosPrivate = () => {
   const setUser = useAuthStore((state) => state.setUser);
+  const refresh = useRefreshToken();
   const navigate = useNavigate();
   useEffect(() => {
     const requestIntercept = axiosBase.interceptors.request.use(
@@ -34,20 +36,19 @@ const useAxiosPrivate = () => {
     const responseIntercept = axiosBase.interceptors.response.use(
       (response: any) => response,
       async (error: { config: any; response: { status: number } }) => {
-        // const prevRequest = error?.config;
+        const prevRequest = error?.config;
         // 500 expire
         // 401 user no longer exist
-        // if (
-        //   (error?.response?.status === 500 ||
-        //     error?.response?.status === 401) &&
-        //   !prevRequest?.sent
-        // ) {
-        //   prevRequest.sent = true;
+        if (
+          (error?.response?.status === 500 ||
+            error?.response?.status === 401) &&
+          !prevRequest?.sent
+        ) {
+          prevRequest.sent = true;
 
-        //   const newAccessToken = await refresh();
-        //   prevRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
-        //   return axiosBase(prevRequest);
-        // }
+          await refresh();
+          return axiosBase(prevRequest);
+        }
         return Promise.reject(error);
       }
     );

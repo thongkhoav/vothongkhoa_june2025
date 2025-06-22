@@ -8,6 +8,7 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
@@ -16,6 +17,9 @@ import { ConfigService } from '@nestjs/config';
 import { Public } from 'src/common/decorators';
 import { RegisterDto } from './dto';
 import { LoginRequestDto } from './dto/login.dto';
+import { RefreshTokenGuard } from 'src/common/guards/refresh-token.guard';
+import { GetCurrentUserId } from 'src/common/decorators/get-current-user-id.decorator';
+import { GetCurrentUser } from 'src/common/decorators/get-current-user.decorator';
 
 @Controller({ version: '1', path: 'auth' })
 export class AuthController {
@@ -59,26 +63,12 @@ export class AuthController {
       'COOKIE_AUTH',
       'cookie_auth_task',
     );
-    const refreshCookieName: string = this.config.get(
-      'COOKIE_REFRESH',
-      'cookie_refresh_task',
-    );
-    const rtDuration: number = this.config.get(
-      'REFRESH_TOKEN_DURATION_SECONDS',
-      1000 * 60 * 60 * 24 * 7, // 7 days
-    );
 
     res.cookie(authCookieName, tokens.access_token, {
       maxAge: 1000 * 60 * 15, // 15m
       httpOnly: false, // set to true in production
-      secure: false, // set to true in production
-      sameSite: 'strict', // set to 'none' in production
-    });
-    res.cookie(refreshCookieName, tokens.refresh_token, {
-      maxAge: rtDuration, // 7 days
-      httpOnly: true, // set to true in production
-      secure: false, // set to true in production
-      sameSite: 'strict', // set to 'none' in production
+      secure: true, // set to true in production
+      sameSite: 'none', // set to 'strict' in production
     });
 
     return tokens;
@@ -86,9 +76,18 @@ export class AuthController {
 
   @Get('protected')
   @HttpCode(HttpStatus.OK)
-  protected(@Req() request: Request): any {
+  protected(@Req() request): any {
     try {
       console.log('test protected route ', (request as any).user);
+
+      const refresh_token =
+        request.cookies[
+          this.config.get('COOKIE_REFRESH', 'cookie_refresh_task')
+        ];
+      const access_token =
+        request.cookies[this.config.get('COOKIE_AUTH', 'cookie_auth_task')];
+      console.log('refresh_token', refresh_token);
+      console.log('access_token', access_token);
       return 'asasd';
     } catch (error) {
       if (error instanceof Error) {
@@ -98,18 +97,68 @@ export class AuthController {
     }
   }
 
-  // @Public()
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req, @Res({ passthrough: true }) res): Promise<string> {
+    try {
+      const curUserId = req?.user?.id;
+      if (!curUserId) {
+        throw new BadRequestException('User not found');
+      }
+      // get tokens from cookies
+
+      const refresh_token =
+        req.cookies[this.config.get('COOKIE_REFRESH', 'cookie_refresh_task')];
+      const access_token =
+        req.cookies[this.config.get('COOKIE_AUTH', 'cookie_auth_task')];
+
+      await this.authService.logout(curUserId, refresh_token, access_token);
+      res.clearCookie(this.config.get('COOKIE_AUTH', 'cookie_auth_task'));
+      res.clearCookie(this.config.get('COOKIE_REFRESH', 'cookie_refresh_task'));
+      return 'Logged out';
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Public()
   // @UseGuards(RefreshTokenGuard)
-  // @Post('refresh')
-  // @HttpCode(HttpStatus.OK)
-  // refreshTokens(
-  //   @GetCurrentUserId() userId: number,
-  //   @GetCurrentUser('refreshToken') refreshToken: string,
-  // ): Promise<Tokens> {
-  // res.cookie('access_token', tokens.access_token, {
-  //   maxAge: 1000 * 60 * 60 * 24 * 7,
-  //   httpOnly: true,
-  //   secure: true,
-  //   sameSite: 'none',
-  // });
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refreshTokens(
+    @Body('refresh_token') refresh_token: string,
+    @Req() req,
+
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ access_token: string; refresh_token: string }> {
+    // const refreshCookieName: string = this.config.get(
+    //   'COOKIE_REFRESH',
+    //   'cookie_refresh_task',
+    // );
+    const authCookieName: string = this.config.get(
+      'COOKIE_AUTH',
+      'cookie_auth_task',
+    );
+    const access_token = req.cookies[authCookieName];
+    if (!refresh_token || !access_token) {
+      throw new BadRequestException(
+        'Refresh token or access token not provided',
+      );
+    }
+    const tokens = await this.authService.refreshAccessToken({
+      refresh_token,
+      access_token,
+    });
+    console.log('refresh tokens', tokens);
+    res.cookie(authCookieName, tokens.access_token, {
+      maxAge: 1000 * 60 * 15, // 15m
+      httpOnly: false, // set to true in production
+      secure: true, // set to true in production
+      sameSite: 'none', // set to 'none' in production
+    });
+    return {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+    };
+  }
 }
