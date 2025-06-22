@@ -4,23 +4,13 @@ import { create } from "zustand";
 
 interface UserState {
   user: User | null;
-  setUser: (user: User) => void;
+  setUser: (user: User | null) => void;
   logout: () => void;
 }
 
 const useAuthStore = create<UserState>((set) => ({
-  user: {
-    sub: "",
-    email: "",
-    fullName: "",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    tokens: {
-      accessToken: "",
-      refreshToken: "",
-    },
-  },
-  setUser: (user: User) => set({ user }),
+  user: null,
+  setUser: (user: User | null) => set({ user }),
   logout: () =>
     set({
       user: null,

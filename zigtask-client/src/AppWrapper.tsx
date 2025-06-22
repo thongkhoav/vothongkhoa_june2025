@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import useAuthStore from "./store/useAuthStore";
 import Cookies from "js-cookie";
-import { READ_ENV } from "./utils/constants";
+import { PATH, READ_ENV } from "./utils/constants";
 import type { User } from "./utils/types/user.type";
 import { jwtDecode } from "jwt-decode";
+import { useNavigate } from "react-router-dom";
 
 export default function AppWrapper({
   children,
@@ -11,6 +12,7 @@ export default function AppWrapper({
   children: React.ReactNode;
 }) {
   const setUser = useAuthStore((state) => state.setUser);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const accessToken = Cookies.get(READ_ENV.COOKIE_AUTH);
@@ -30,6 +32,9 @@ export default function AppWrapper({
           },
         });
         console.log("Decoded user:", decodedToken);
+        navigate("/");
+      } else {
+        navigate(PATH.LOGIN);
       }
     }
   }, []);
