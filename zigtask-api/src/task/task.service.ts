@@ -42,12 +42,56 @@ export class TaskService {
     return newTask;
   }
 
-  async getTasks(userId: string): Promise<Task[]> {
-    const tasks = await this.taskRepository.find({
-      where: { user: { id: userId } },
-      order: { createdAt: 'DESC' },
-    });
-    return tasks;
+  async getTasks(
+    userId: string,
+    status: string,
+    search: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<Task[]> {
+    if (status && !Object.values(TASK_STATUS).includes(status as TASK_STATUS)) {
+      throw new BadRequestException('Invalid task status');
+    }
+    const query = this.taskRepository
+      .createQueryBuilder('task')
+      .leftJoin('task.user', 'user')
+      .where('user.id = :userId', { userId })
+      .orderBy('task.createdAt', 'DESC');
+
+    if (status) {
+      query.andWhere('task.status = :status', { status });
+    }
+
+    if (search) {
+      query.andWhere('LOWER(task.title) LIKE :search', {
+        search: `%${search.toLowerCase()}%`,
+      });
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      query.andWhere('task.dueDate >= :startDate', { startDate: start });
+    }
+    console.log('startDate:', startDate);
+    console.log('endDate:', endDate);
+
+    if (endDate) {
+      const end = new Date(endDate);
+      query.andWhere('task.dueDate <= :endDate', { endDate: end });
+    }
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      query.andWhere('task.dueDate BETWEEN :startDate AND :endDate', {
+        startDate: start,
+        endDate: end,
+      });
+    }
+
+    console.log('Query:', query.getSql());
+
+    return await query.getMany();
   }
 
   async updateTaskValidator(

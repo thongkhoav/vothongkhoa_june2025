@@ -5,11 +5,11 @@ import { jwtDecode } from "jwt-decode";
 import useAuthStore from "@/store/useAuthStore";
 import { READ_ENV } from "../constants";
 import { useNavigate } from "react-router-dom";
-import useRefreshToken from "./useRefreshToken";
+// import useRefreshToken from "./useRefreshToken";
 
 const useAxiosPrivate = () => {
   const setUser = useAuthStore((state) => state.setUser);
-  const refresh = useRefreshToken();
+  // const refresh = useRefreshToken();
   const navigate = useNavigate();
   useEffect(() => {
     const requestIntercept = axiosBase.interceptors.request.use(
@@ -36,20 +36,19 @@ const useAxiosPrivate = () => {
     const responseIntercept = axiosBase.interceptors.response.use(
       (response: any) => response,
       async (error: { config: any; response: { status: number } }) => {
-        const prevRequest = error?.config;
-        // 500 expire
-        // 401 user no longer exist
+        console.log("axios response error", error);
+        // const prevRequest = error?.config;
+        // // 500 expire
+        // // 401 user no longer exist
         if (
-          (error?.response?.status === 500 ||
-            error?.response?.status === 401) &&
-          !prevRequest?.sent
+          error?.response?.status === 500 ||
+          error?.response?.status === 401
         ) {
-          prevRequest.sent = true;
-
-          await refresh();
-          return axiosBase(prevRequest);
+          setUser(null);
+          Cookies.remove(READ_ENV.COOKIE_AUTH);
+          navigate("/login", { replace: true });
         }
-        return Promise.reject(error);
+        // return Promise.reject(error);
       }
     );
 

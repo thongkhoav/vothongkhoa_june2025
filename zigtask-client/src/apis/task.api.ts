@@ -7,8 +7,21 @@ import type {
 } from "@/utils/types/task.type";
 import type { AxiosInstance } from "axios";
 
-export const getTaskListApi = async (axios: AxiosInstance): Promise<Task[]> => {
-  const res = await axios.get<GetTaskListResponse>("/tasks");
+export const getTaskListApi = async (
+  axios: AxiosInstance,
+  status?: string,
+  search?: string,
+  startDate?: string,
+  endDate?: string
+): Promise<Task[]> => {
+  const res = await axios.get<GetTaskListResponse>("/tasks", {
+    params: {
+      status: status ? status : "",
+      search: search ? search : "",
+      startDate: startDate ? startDate : "",
+      endDate: endDate ? endDate : "",
+    },
+  });
   return res.data.data;
 };
 

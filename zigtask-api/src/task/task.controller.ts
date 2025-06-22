@@ -8,10 +8,12 @@ import {
   Delete,
   Req,
   Put,
+  Query,
 } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { TASK_STATUS } from './entities/task.entity';
 
 @Controller({
   version: '1',
@@ -32,12 +34,24 @@ export class TaskController {
   }
 
   @Get('/')
-  async getTasks(@Req() req) {
+  async getTasks(
+    @Req() req,
+    @Query('status') status?: TASK_STATUS,
+    @Query('search') search?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
     const curUserId = req?.user?.id;
     if (!curUserId) {
       throw new Error('User not found');
     }
-    const data = await this.taskService.getTasks(curUserId);
+    const data = await this.taskService.getTasks(
+      curUserId,
+      TASK_STATUS[status],
+      search,
+      startDate,
+      endDate,
+    );
     return { data };
   }
 
