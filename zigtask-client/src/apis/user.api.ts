@@ -1,0 +1,19 @@
+import { axiosBase } from "@/utils/axios/axiosBase";
+import type {
+  RegisterResponse,
+  RegisterDto,
+  LoginResponse,
+  LoginDto,
+} from "@/utils/types/user.type";
+
+export const registerUserApi = async (
+  data: RegisterDto
+): Promise<RegisterResponse> => {
+  const res = await axiosBase.post("/auth/register", data);
+  return res.data;
+};
+
+export const loginUserApi = async (data: LoginDto): Promise<LoginResponse> => {
+  const response = await axiosBase.post("/auth/login", data);
+  return response.data;
+};

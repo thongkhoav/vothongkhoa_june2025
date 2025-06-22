@@ -2,8 +2,8 @@ import { Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { PATH } from "@/utils/constants/paths";
 import Loading from "@/components/custom/Loading";
-const LoginPage = lazy(() => import("@/pages/login/LoginPage"));
-const RegisterPage = lazy(() => import("@/pages/login/RegisterPage"));
+const LoginPage = lazy(() => import("@/pages/guest/LoginPage"));
+const RegisterPage = lazy(() => import("@/pages/guest/RegisterPage"));
 
 export default function LoginRoutes() {
   return (

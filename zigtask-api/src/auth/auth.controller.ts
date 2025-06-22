@@ -70,7 +70,7 @@ export class AuthController {
 
     res.cookie(authCookieName, tokens.access_token, {
       maxAge: 1000 * 60 * 15, // 15m
-      httpOnly: true, // set to true in production
+      httpOnly: false, // set to true in production
       secure: false, // set to true in production
       sameSite: 'strict', // set to 'none' in production
     });
