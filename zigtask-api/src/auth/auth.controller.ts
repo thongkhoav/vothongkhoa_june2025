@@ -99,7 +99,11 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Req() req, @Res({ passthrough: true }) res): Promise<string> {
+  async logout(
+    @Req() req,
+    @Res({ passthrough: true }) res,
+    @Body('fcmToken') fcmToken: string,
+  ): Promise<string> {
     try {
       const curUserId = req?.user?.id;
       if (!curUserId) {
@@ -107,14 +111,11 @@ export class AuthController {
       }
       // get tokens from cookies
 
-      const refresh_token =
-        req.cookies[this.config.get('COOKIE_REFRESH', 'cookie_refresh_task')];
-      const access_token =
-        req.cookies[this.config.get('COOKIE_AUTH', 'cookie_auth_task')];
+      // const access_token =
+      //   req.cookies[this.config.get('COOKIE_AUTH', 'cookie_auth_task')];
 
-      await this.authService.logout(curUserId, refresh_token, access_token);
+      await this.authService.logout(curUserId, fcmToken);
       res.clearCookie(this.config.get('COOKIE_AUTH', 'cookie_auth_task'));
-      res.clearCookie(this.config.get('COOKIE_REFRESH', 'cookie_refresh_task'));
       return 'Logged out';
     } catch (error) {
       throw new BadRequestException(error.message);

@@ -35,6 +35,9 @@ export default function DraggableTask({ item, children }: Props) {
       alignItems={"center"}
       justifyContent={"space-between"}
       width={"100%"}
+      borderWidth={1}
+      borderColor={"gray.400"}
+      borderStyle={"solid"}
     >
       {children}
     </Flex>

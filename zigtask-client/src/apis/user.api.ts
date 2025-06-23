@@ -19,6 +19,11 @@ export const loginUserApi = async (data: LoginDto): Promise<LoginResponse> => {
   return response;
 };
 
-export const logoutUserApi = async (axios: AxiosInstance): Promise<void> => {
-  await axios.post("/auth/logout");
+export const logoutUserApi = async (
+  axios: AxiosInstance,
+  fcmToken?: string
+): Promise<void> => {
+  await axios.post("/auth/logout", {
+    fcmToken: fcmToken || "",
+  });
 };

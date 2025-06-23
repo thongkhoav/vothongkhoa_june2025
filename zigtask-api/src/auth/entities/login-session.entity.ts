@@ -4,8 +4,8 @@ import { User } from './user.entity';
 
 @Entity()
 export class LoginSession extends AbstractEntity<LoginSession> {
-  // @Column({ nullable: true })
-  // fcmToken: string;
+  @Column({ nullable: true })
+  fcmToken: string;
 
   @Column({ nullable: false })
   accessToken: string;

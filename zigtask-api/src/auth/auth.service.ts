@@ -163,22 +163,34 @@ export class AuthService {
     return loginSession;
   }
 
-  async logout(
-    userId: string,
-    refreshToken: string,
-    accessToken: string,
-  ): Promise<void> {
-    const loginSession = await this.loginSessionRepository.findOne({
-      where: { refreshToken, accessToken, user: { id: userId } },
-    });
-    if (!loginSession) {
-      throw new UnauthorizedException('Invalid token');
+  async logout(userId: string, fcmToken: string): Promise<void> {
+    if (!fcmToken) {
+      const loginSession = await this.loginSessionRepository.find({
+        where: { user: { id: userId } },
+      });
+      if (!loginSession || loginSession.length === 0) {
+        throw new UnauthorizedException('Invalid token');
+      }
+      for (const session of loginSession) {
+        await this.loginSessionRepository.update(
+          { id: session.id },
+          { isRevoked: true },
+        );
+      }
+      console.log('User logged out successfully from all sessions');
+    } else {
+      const loginSession = await this.loginSessionRepository.findOne({
+        where: { fcmToken, user: { id: userId } },
+      });
+      await this.loginSessionRepository.update(
+        { id: loginSession.id },
+        { isRevoked: true },
+      );
+      if (!loginSession) {
+        throw new UnauthorizedException('Invalid token');
+      }
+      console.log('User logged out successfully');
     }
-    await this.loginSessionRepository.update(
-      { id: loginSession.id },
-      { isRevoked: true },
-    );
-    console.log('User logged out successfully');
   }
 
   async refreshAccessToken(tokenDto: Tokens): Promise<Tokens> {

@@ -40,6 +40,7 @@ import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
 import DraggableTask from "@/components/custom/DraggableTask";
 import TaskColumn from "@/components/custom/TaskColumn";
+import { logoutUserApi } from "@/apis/user.api";
 const statusColorMap = {
   [TASK_STATUS.TODO]: "gray",
   [TASK_STATUS.IN_PROGRESS]: "blue",
@@ -237,7 +238,7 @@ export default function TaskListPage() {
     try {
       // Call your logout API or perform logout logic here
       // For example, you might want to clear the user session or token
-      // await logoutUserApi(axiosPrivate);
+      await logoutUserApi(axiosPrivate);
       useAuthStore.getState().logout();
       Cookies.remove(READ_ENV.COOKIE_AUTH);
       toast.success("Logged out successfully!");
@@ -263,6 +264,9 @@ export default function TaskListPage() {
       toast.error("Failed to update task status. Please try again.");
     }
   };
+  useEffect(() => {
+    onSearchTasks();
+  }, [searchQuery]);
 
   const onSearchTasks = async () => {
     try {
@@ -399,6 +403,10 @@ export default function TaskListPage() {
                             >
                               <DatePicker
                                 selected={field.value}
+                                showTimeSelect
+                                timeFormat="HH:mm"
+                                timeIntervals={15}
+                                timeCaption="Time"
                                 onChange={(date) => field.onChange(date)}
                                 dateFormat="yyyy-MM-dd"
                                 minDate={new Date()}
@@ -509,9 +517,9 @@ export default function TaskListPage() {
               setSearchQuery(searchValue);
             }}
           />
-          <Button size="sm" backgroundColor="blue.400" onClick={onSearchTasks}>
+          {/* <Button size="sm" backgroundColor="blue.400" onClick={onSearchTasks}>
             Search
-          </Button>
+          </Button> */}
         </Flex>
         <Button
           size="sm"
@@ -562,8 +570,10 @@ export default function TaskListPage() {
         <Flex gap="2" alignItems="center">
           <Text textStyle="md">Total tasks: {tasks.length}</Text>
         </Flex>
+
+        {/*  Task Columns */}
         {tasks.length > 0 ? (
-          <Flex direction={"row"} gap="4">
+          <Flex direction={"row"} gap="4" width={"100%"}>
             {Object.entries(TASK_STATUS).map(([key, value]) => {
               let listdata: Task[] = [];
               switch (value) {
@@ -604,6 +614,7 @@ export default function TaskListPage() {
                             paddingBottom="2"
                             key={item.id}
                             borderBottom="1px solid #e2e8f0"
+                            width={"100%"}
                           >
                             <Flex direction="row" gap="1" width={"100%"}>
                               <Flex direction="column" gap="1" width={"100%"}>
@@ -623,8 +634,9 @@ export default function TaskListPage() {
                                   </Flex>
                                   <Box
                                     shadow={"sm"}
-                                    padding="2px 4px"
+                                    padding="4px 6px"
                                     borderRadius="md"
+                                    width={"fit-content"}
                                   >
                                     <select
                                       style={{
