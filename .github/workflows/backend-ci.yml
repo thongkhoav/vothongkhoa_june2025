@@ -1,0 +1,41 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - "zigtask-api/**"
+    branches:
+      - "main"
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "zigtask-api/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22.16
+
+      - name: Install deps
+        working-directory: ./zigtask-api
+        run: npm install
+
+      - name: Lint
+        working-directory: ./zigtask-api
+        run: npm run lint
+
+      - name: Test
+        working-directory: ./zigtask-api
+        run: npm run test
+
+      - name: Build
+        working-directory: ./zigtask-api
+        run: npm run build

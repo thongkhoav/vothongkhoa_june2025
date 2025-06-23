@@ -1,0 +1,33 @@
+name: Frontend CI
+
+on:
+  push:
+    paths:
+      - "zigtask-client/**"
+  pull_request:
+    paths:
+      - "zigtask-client/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22.16
+
+      - name: Install deps
+        working-directory: ./zigtask-client
+        run: npm install
+
+      - name: Lint
+        working-directory: ./zigtask-client
+        run: npm run lint
+
+      - name: Build
+        working-directory: ./zigtask-client
+        run: npm run build
