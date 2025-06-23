@@ -42,12 +42,12 @@ export class RtStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
     if (!payload) {
       throw new BadRequestException('invalid jwt token');
     }
-    let data: Tokens =
+    const data: Tokens =
       req?.cookies[this.config.get('COOKIE_AUTH', 'Authentication')];
     if (!data?.refresh_token) {
       throw new BadRequestException('invalid refresh token');
     }
-    let user = await this.authService.validRefreshToken(
+    const user = await this.authService.validRefreshToken(
       payload.email,
       data.refresh_token,
     );

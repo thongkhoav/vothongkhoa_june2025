@@ -136,12 +136,12 @@ export class AuthService {
     email: string,
     refreshToken: string,
   ): Promise<any> {
-    let user = await this.userRepo.findOne({
+    const user = await this.userRepo.findOne({
       where: {
         email: email,
       },
     });
-    let loginSession = await this.loginSessionRepository.findOne({
+    const loginSession = await this.loginSessionRepository.findOne({
       where: {
         refreshToken: refreshToken,
         user: user,
