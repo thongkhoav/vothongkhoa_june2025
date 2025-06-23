@@ -1,6 +1,7 @@
 import { registerUserApi } from "@/apis/user.api";
 import type { RegisterDto } from "@/utils/types/user.type";
 import { Button, Field, Input, Stack, Text } from "@chakra-ui/react";
+import { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -19,7 +20,12 @@ export default function RegisterPage() {
       toast.success("Registration successful! Please log in.");
       navigate("/login");
     } catch (error) {
-      toast.error("Registration failed. Please try again.");
+      if (error instanceof AxiosError && error.response) {
+        toast.error(error.response?.data?.message || "Registration failed");
+        console.log(error);
+        return;
+      }
+      toast.error("An unexpected error occurred during registration.");
       console.error("Registration error:", error);
     }
   });
