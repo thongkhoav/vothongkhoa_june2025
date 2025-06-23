@@ -38,6 +38,8 @@ import { toast } from "react-toastify";
 import { LuAsterisk, LuCalendarCheck, LuCircleAlert } from "react-icons/lu";
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
+import DraggableTask from "@/components/custom/DraggableTask";
+import TaskColumn from "@/components/custom/TaskColumn";
 const statusColorMap = {
   [TASK_STATUS.TODO]: "gray",
   [TASK_STATUS.IN_PROGRESS]: "blue",
@@ -68,11 +70,12 @@ export default function TaskListPage() {
   const axiosPrivate = useAxiosPrivate();
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
-  const [deletePopoverOpenId, setDeletePopoverOpenId] = useState(null);
+  const [deletePopoverOpenId, setDeletePopoverOpenId] = useState<
+    string | null
+  >();
   const [taskStatusMap, setTaskStatusMap] = useState<Record<string, string>>(
     {}
   );
-  const [statusFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isDateRangePickerOpen, setIsDateRangePickerOpen] = useState(false);
   const [todoTasks, setTodoTasks] = useState<Task[]>([]);
@@ -94,7 +97,7 @@ export default function TaskListPage() {
     try {
       const data = await getTaskListApi(
         axiosPrivate,
-        statusFilter,
+        "",
         searchQuery,
         startDate.toISOString(),
         endDate.toISOString()
@@ -106,6 +109,11 @@ export default function TaskListPage() {
       toast.error("Failed to filter tasks by date range. Please try again.");
     }
   };
+
+  useEffect(() => {
+    // Fetch tasks when the component mounts
+    fetchTasks();
+  }, []);
 
   useEffect(() => {
     // filter tasks based on their status
@@ -133,31 +141,19 @@ export default function TaskListPage() {
 
   const fetchTasks = async () => {
     try {
-      console.log("Fetching tasks with status filter:", statusFilter);
-      if (statusFilter !== "ALL") {
-        // If a specific status is selected, fetch tasks with that status
-        const data = await getTaskListApi(axiosPrivate, statusFilter);
-        setTasks(data);
-      } else {
-        // If "All" is selected, fetch all tasks
-        const data = await getTaskListApi(axiosPrivate);
-        setTasks(data);
-      }
+      const data = await getTaskListApi(
+        axiosPrivate,
+        "",
+        searchQuery,
+        submitDateRange.startDate,
+        submitDateRange.endDate
+      );
+      setTasks(data);
     } catch (error) {
       console.error("Failed to fetch tasks:", error);
       toast.error("Failed to fetch tasks. Please try again.");
     }
   };
-
-  useEffect(() => {
-    fetchTasks();
-  }, [statusFilter]);
-
-  // const onFilterTasks = async (status: string) => {
-  //   // console.log("Filtering tasks by status:", status);
-  //   setStatusFilter(status);
-  //   // await fetchTasks(); // Re-fetch tasks with the selected status filter
-  // };
 
   const onUpdateTaskStatus = async (task: Task, taskStatus: string) => {
     console.log("Updating task status:", task, taskStatus);
@@ -253,11 +249,26 @@ export default function TaskListPage() {
     }
   };
 
+  const onDropUpdateTaskStatusById = async (
+    taskId: string,
+    newStatus: string
+  ) => {
+    try {
+      const task = tasks.find((t) => t.id === taskId);
+      if (task) {
+        await onUpdateTaskStatus(task, newStatus);
+      }
+    } catch (error) {
+      console.error("Update task status by ID error:", error);
+      toast.error("Failed to update task status. Please try again.");
+    }
+  };
+
   const onSearchTasks = async () => {
     try {
       const data = await getTaskListApi(
         axiosPrivate,
-        statusFilter,
+        "",
         searchQuery,
         submitDateRange.startDate,
         submitDateRange.endDate
@@ -511,7 +522,7 @@ export default function TaskListPage() {
             ? "Hide Date Range Picker"
             : "Show Date Range Picker"}
         </Button>
-        {isDateRangePickerOpen && (
+        {isDateRangePickerOpen ? (
           <Box
             position="absolute"
             top="60px"
@@ -535,23 +546,19 @@ export default function TaskListPage() {
               Filter
             </Button>
           </Box>
+        ) : (
+          <Text textStyle="md" color="gray.500">
+            Selected Date Range:
+            {submitDateRange.startDate && submitDateRange.endDate
+              ? `${new Date(
+                  submitDateRange.startDate
+                ).toLocaleDateString()} - ${new Date(
+                  submitDateRange.endDate
+                ).toLocaleDateString()}`
+              : "None"}
+          </Text>
         )}
 
-        {/* <Flex gap="2" alignItems="center" justifyContent={"flex-end"}>
-          <Text textStyle="md">Filter by status:</Text>
-          <select
-            value={statusFilter}
-            onChange={(e) => onFilterTasks(e.target.value)}
-            className="border border-gray-300 rounded-md p-1"
-          >
-            <option value="ALL">All</option>
-            {Object.entries(TASK_STATUS).map(([key, value]) => (
-              <option key={key} value={key}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </Flex> */}
         <Flex gap="2" alignItems="center">
           <Text textStyle="md">Total tasks: {tasks.length}</Text>
         </Flex>
@@ -572,168 +579,217 @@ export default function TaskListPage() {
                 default:
                   listdata = tasks;
               }
-              if (listdata.length === 0) {
-                return (
-                  <Flex key={key} height="200px" justifyContent="center">
-                    <Text textStyle="md" color="gray.500">
-                      No tasks in {value}. Please create a new task.
-                    </Text>
-                  </Flex>
-                );
-              }
+
               return (
-                <List.Root gap="2" variant="plain" align="center">
-                  {listdata?.map((item) => (
-                    <List.Item
-                      paddingBottom="2"
-                      key={item.id}
-                      borderBottom="1px solid #e2e8f0"
+                <TaskColumn
+                  status={value}
+                  tasks={listdata}
+                  key={key}
+                  onDropTask={onDropUpdateTaskStatusById}
+                >
+                  {listdata.length > 0 ? (
+                    <List.Root
+                      gap="2"
+                      variant="plain"
+                      align="center"
+                      key={key}
+                      width="100%"
+                      shadow={"md"}
+                      borderRadius="md"
+                      padding="4"
                     >
-                      <Flex direction="row" gap="1" width={"100%"}>
-                        <Flex direction="column" gap="1" width={"100%"}>
-                          <Flex direction="column" gap="2">
-                            <Flex gap="2" alignItems="center">
-                              <Text textStyle="md" fontWeight="bold">
-                                {item.title}
-                              </Text>
-                              <Badge
-                                colorPalette={statusColorMap[item.status]}
-                                size="sm"
-                                height="fit-content"
-                                padding="2px 8px"
-                              >
-                                {item.status}
-                              </Badge>
-                              <Box
-                                shadow={"sm"}
-                                padding="2px 4px"
-                                borderRadius="md"
-                              >
-                                <select
-                                  style={{
-                                    border: "1px solid #ccc",
-                                    borderRadius: "4px",
-                                    padding: "2px 4px",
-                                    marginRight: "8px",
-                                  }}
-                                  name="status"
-                                  id="status"
-                                  value={taskStatusMap[item.id] ?? item.status}
-                                  onChange={(e) =>
-                                    setTaskStatusMap((prev) => ({
-                                      ...prev,
-                                      [item.id]: e.target.value,
-                                    }))
-                                  }
-                                >
-                                  {Object.values(TASK_STATUS).map((status) => (
-                                    <option key={status} value={status}>
-                                      {status}
-                                    </option>
-                                  ))}
-                                </select>
-                                <Button
-                                  size={"xs"}
-                                  color={"grey.500"}
-                                  variant="outline"
-                                  onClick={() =>
-                                    onUpdateTaskStatus(
-                                      item,
-                                      taskStatusMap[item.id] ?? item.status
-                                    )
-                                  }
-                                >
-                                  Save Status
-                                </Button>
-                              </Box>
-                            </Flex>
-                            <Flex gap="2" alignItems="center">
-                              <LuCalendarCheck size={18} color="teal" />
-                              <Text textStyle="sm" color="gray.600">
-                                Due:{" "}
-                                {new Date(item.dueDate).toLocaleDateString()}
-                              </Text>
-                            </Flex>
-                          </Flex>
-                          <Text textStyle="md" fontWeight="normal">
-                            {item.description}
-                          </Text>
-                        </Flex>
-                        <Flex
-                          direction="column"
-                          justifyContent="space-between"
-                          gap="2"
-                        >
-                          <Button
-                            size="xs"
-                            backgroundColor="gray.400"
-                            onClick={() => onOpenUpdateDialog(item)}
+                      {listdata?.map((item) => (
+                        <DraggableTask key={item?.id} item={item}>
+                          <List.Item
+                            paddingBottom="2"
+                            key={item.id}
+                            borderBottom="1px solid #e2e8f0"
                           >
-                            Update
-                          </Button>
-                          <Popover.Root
-                            open={deletePopoverOpenId === item.id}
-                            onOpenChange={(open) => {
-                              if (!open) {
-                                setDeletePopoverOpenId(null);
-                              }
-                            }}
-                          >
-                            <Popover.Trigger asChild>
-                              <Button
-                                size="xs"
-                                backgroundColor="red.400"
-                                onClick={() => setDeletePopoverOpenId(item.id)}
-                              >
-                                Delete
-                              </Button>
-                            </Popover.Trigger>
-                            <Portal>
-                              <Popover.Positioner>
-                                <Popover.Content>
-                                  <Popover.Arrow />
-                                  <Popover.Body>
-                                    <Popover.Title fontWeight="medium">
-                                      <Flex gap="2" alignItems={"center"}>
-                                        <LuCircleAlert color="red" size={16} />
-                                        <Text>Delete Task "{item.title}"</Text>
-                                      </Flex>
-                                    </Popover.Title>
-                                    <Text my="4">
-                                      Are you sure you want to delete this task?
+                            <Flex direction="row" gap="1" width={"100%"}>
+                              <Flex direction="column" gap="1" width={"100%"}>
+                                <Flex direction="column" gap="2">
+                                  <Flex gap="2" alignItems="center">
+                                    <Text textStyle="md" fontWeight="bold">
+                                      {item.title}
                                     </Text>
-                                    <Flex
-                                      gap="2"
-                                      direction="row"
-                                      justifyContent={"flex-end"}
+                                    <Badge
+                                      colorPalette={statusColorMap[item.status]}
+                                      size="sm"
+                                      height="fit-content"
+                                      padding="2px 8px"
                                     >
-                                      <Button
-                                        size="xs"
-                                        backgroundColor="gray.500"
-                                        onClick={() => onDeleteTask(item.id)}
-                                      >
-                                        Confirm
-                                      </Button>
-                                      <Button
-                                        size="xs"
-                                        backgroundColor="red.500"
-                                        onClick={() =>
-                                          setDeletePopoverOpenId(null)
-                                        }
-                                      >
-                                        Cancel
-                                      </Button>
-                                    </Flex>
-                                  </Popover.Body>
-                                </Popover.Content>
-                              </Popover.Positioner>
-                            </Portal>
-                          </Popover.Root>
-                        </Flex>
-                      </Flex>
-                    </List.Item>
-                  ))}
-                </List.Root>
+                                      {item.status}
+                                    </Badge>
+                                  </Flex>
+                                  <Box
+                                    shadow={"sm"}
+                                    padding="2px 4px"
+                                    borderRadius="md"
+                                  >
+                                    <select
+                                      style={{
+                                        fontSize: "14px",
+                                        border: "1px solid #ccc",
+                                        borderRadius: "4px",
+                                        padding: "2px 4px",
+                                        marginRight: "8px",
+                                      }}
+                                      name="status"
+                                      id="status"
+                                      value={
+                                        taskStatusMap[item.id] ?? item.status
+                                      }
+                                      onChange={(e) =>
+                                        setTaskStatusMap((prev) => ({
+                                          ...prev,
+                                          [item.id]: e.target.value,
+                                        }))
+                                      }
+                                    >
+                                      {Object.values(TASK_STATUS).map(
+                                        (status) => (
+                                          <option key={status} value={status}>
+                                            {status}
+                                          </option>
+                                        )
+                                      )}
+                                    </select>
+                                    <Button
+                                      size="xs"
+                                      colorPalette="blue"
+                                      onClick={() =>
+                                        onUpdateTaskStatus(
+                                          item,
+                                          taskStatusMap[item.id] ?? item.status
+                                        )
+                                      }
+                                      disabled={
+                                        !taskStatusMap[item.id] ||
+                                        taskStatusMap[item.id] === item.status
+                                      }
+                                      style={{
+                                        marginLeft: "8px",
+                                      }}
+                                    >
+                                      Save Status
+                                    </Button>
+                                  </Box>
+                                  <Flex gap="2" alignItems="center">
+                                    <LuCalendarCheck size={18} color="teal" />
+                                    <Text textStyle="sm" color="gray.600">
+                                      Due:{" "}
+                                      {new Date(
+                                        item.dueDate
+                                      ).toLocaleDateString()}
+                                    </Text>
+                                  </Flex>
+                                </Flex>
+                                <Text textStyle="md" fontWeight="normal">
+                                  {item.description}
+                                </Text>
+                              </Flex>
+                              <Flex
+                                direction="column"
+                                justifyContent="space-between"
+                                gap="2"
+                              >
+                                <Button
+                                  size="xs"
+                                  backgroundColor="gray.400"
+                                  onClick={() => onOpenUpdateDialog(item)}
+                                >
+                                  Update
+                                </Button>
+                                <Popover.Root
+                                  open={deletePopoverOpenId === item.id}
+                                  onOpenChange={(open) => {
+                                    if (!open) {
+                                      setDeletePopoverOpenId(null);
+                                    }
+                                  }}
+                                >
+                                  <Popover.Trigger asChild>
+                                    <Button
+                                      size="xs"
+                                      backgroundColor="red.400"
+                                      onClick={() =>
+                                        setDeletePopoverOpenId(item.id)
+                                      }
+                                    >
+                                      Delete
+                                    </Button>
+                                  </Popover.Trigger>
+                                  <Portal>
+                                    <Popover.Positioner>
+                                      <Popover.Content>
+                                        <Popover.Arrow />
+                                        <Popover.Body>
+                                          <Popover.Title fontWeight="medium">
+                                            <Flex gap="2" alignItems={"center"}>
+                                              <LuCircleAlert
+                                                color="red"
+                                                size={16}
+                                              />
+                                              <Text>
+                                                Delete Task "{item.title}"
+                                              </Text>
+                                            </Flex>
+                                          </Popover.Title>
+                                          <Text my="4">
+                                            Are you sure you want to delete this
+                                            task?
+                                          </Text>
+                                          <Flex
+                                            gap="2"
+                                            direction="row"
+                                            justifyContent={"flex-end"}
+                                          >
+                                            <Button
+                                              size="xs"
+                                              backgroundColor="gray.500"
+                                              onClick={() =>
+                                                onDeleteTask(item.id)
+                                              }
+                                            >
+                                              Confirm
+                                            </Button>
+                                            <Button
+                                              size="xs"
+                                              backgroundColor="red.500"
+                                              onClick={() =>
+                                                setDeletePopoverOpenId(null)
+                                              }
+                                            >
+                                              Cancel
+                                            </Button>
+                                          </Flex>
+                                        </Popover.Body>
+                                      </Popover.Content>
+                                    </Popover.Positioner>
+                                  </Portal>
+                                </Popover.Root>
+                              </Flex>
+                            </Flex>
+                          </List.Item>
+                        </DraggableTask>
+                      ))}
+                    </List.Root>
+                  ) : (
+                    <Flex
+                      height="200px"
+                      justifyContent="center"
+                      alignItems="center"
+                      padding={4}
+                      shadow={"md"}
+                      borderRadius="md"
+                      width="100%"
+                    >
+                      <Text textStyle="md" color="gray.500">
+                        No tasks in {value}. Please create a new task.
+                      </Text>
+                    </Flex>
+                  )}
+                </TaskColumn>
               );
             })}
           </Flex>
