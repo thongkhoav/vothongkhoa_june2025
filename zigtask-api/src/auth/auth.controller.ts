@@ -8,7 +8,6 @@ import {
   Post,
   Req,
   Res,
-  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
@@ -17,9 +16,6 @@ import { ConfigService } from '@nestjs/config';
 import { Public } from 'src/common/decorators';
 import { RegisterDto } from './dto';
 import { LoginRequestDto } from './dto/login.dto';
-import { RefreshTokenGuard } from 'src/common/guards/refresh-token.guard';
-import { GetCurrentUserId } from 'src/common/decorators/get-current-user-id.decorator';
-import { GetCurrentUser } from 'src/common/decorators/get-current-user.decorator';
 
 @Controller({ version: '1', path: 'auth' })
 export class AuthController {
