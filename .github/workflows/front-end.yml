@@ -2,9 +2,16 @@ name: Frontend CI
 
 on:
   push:
+    # run on develop and main
+    branches:
+      - develop
+      - main
     paths:
       - "zigtask-client/**"
   pull_request:
+    branches:
+      - develop
+      - main
     paths:
       - "zigtask-client/**"
 

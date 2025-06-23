@@ -5,10 +5,12 @@ on:
     paths:
       - "zigtask-api/**"
     branches:
-      - "main"
+      - main
+      - develop
   pull_request:
     branches:
-      - "main"
+      - main
+      - develop
     paths:
       - "zigtask-api/**"
 
