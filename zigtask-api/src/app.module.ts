@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { AccessTokenGuard } from './common/guards/access-token.guard';
 import { APP_GUARD } from '@nestjs/core';
+import { TaskGateway } from './task.gateway';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { APP_GUARD } from '@nestjs/core';
     TaskModule,
   ],
   providers: [
+    TaskGateway,
     {
       provide: APP_GUARD,
       useClass: AccessTokenGuard,

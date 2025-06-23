@@ -41,6 +41,7 @@ import { useNavigate } from "react-router-dom";
 import DraggableTask from "@/components/custom/DraggableTask";
 import TaskColumn from "@/components/custom/TaskColumn";
 import { logoutUserApi } from "@/apis/user.api";
+import { socket } from "@/sockets/socket";
 const statusColorMap = {
   [TASK_STATUS.TODO]: "gray",
   [TASK_STATUS.IN_PROGRESS]: "blue",
@@ -62,6 +63,7 @@ const initialRange = {
 
 export default function TaskListPage() {
   const { user } = useAuthStore();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectionRange, setSelectionRange] = useState(initialRange);
   const [submitDateRange, setSubmitDateRange] = useState({
@@ -111,9 +113,16 @@ export default function TaskListPage() {
     }
   };
 
+  // Fetch tasks when the component mounts and set up socket listeners
   useEffect(() => {
     // Fetch tasks when the component mounts
     fetchTasks();
+    socket.on("task_updated", (task) => {
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+    });
+
+    // Cleanup the socket listener when the component unmounts
+    return () => socket.off("task_updated");
   }, []);
 
   useEffect(() => {
@@ -156,31 +165,59 @@ export default function TaskListPage() {
     }
   };
 
-  const onUpdateTaskStatus = async (task: Task, taskStatus: string) => {
-    console.log("Updating task status:", task, taskStatus);
-    try {
-      const data: UpdateTaskDto = {
-        title: task.title,
-        description: task.description,
-        dueDate: task.dueDate,
-        status: taskStatus as TASK_STATUS,
-      };
+  // const onUpdateTaskStatus = async (task: Task, taskStatus: string) => {
+  //   console.log("Updating task status:", task, taskStatus);
+  //   try {
+  //     const data: UpdateTaskDto = {
+  //       title: task.title,
+  //       description: task.description,
+  //       dueDate: task.dueDate,
+  //       status: taskStatus as TASK_STATUS,
+  //     };
 
-      if (task?.id) {
-        await updateTaskApi(axiosPrivate, task.id, data);
-        toast.success("Task updated successfully!");
-        // Update the local state with the new status
-        setTasks((prevTasks: Task[]) =>
-          prevTasks.map((t) =>
-            t.id === task.id
-              ? {
-                  ...t,
-                  status: taskStatus as TASK_STATUS,
-                }
-              : t
-          )
-        );
-      }
+  //     if (task?.id) {
+  //       await updateTaskApi(axiosPrivate, task.id, data);
+  //       toast.success("Task updated successfully!");
+  //       // Update the local state with the new status
+  //       setTasks((prevTasks: Task[]) =>
+  //         prevTasks.map((t) =>
+  //           t.id === task.id
+  //             ? {
+  //                 ...t,
+  //                 status: taskStatus as TASK_STATUS,
+  //               }
+  //             : t
+  //         )
+  //       );
+  //     }
+  //   } catch (error) {
+  //     toast.error("Failed to update task status. Please try again.");
+  //     console.error("Update task status error:", error);
+  //   }
+  // };
+
+  // using socket
+  const onUpdateTaskStatus = async (task: Task, taskStatus: string) => {
+    console.log("Updating task status socket:", task, taskStatus);
+    if (!task?.id) {
+      toast.error("Task ID is missing. Cannot update status.");
+      return;
+    }
+    try {
+      socket.emit("update_task", { id: task?.id, status: taskStatus });
+      toast.success("Task status updated successfully!");
+
+      // Update the local state with the new status
+      setTasks((prevTasks: Task[]) =>
+        prevTasks.map((t) =>
+          t.id === task.id
+            ? {
+                ...t,
+                status: taskStatus as TASK_STATUS,
+              }
+            : t
+        )
+      );
     } catch (error) {
       toast.error("Failed to update task status. Please try again.");
       console.error("Update task status error:", error);
@@ -683,7 +720,7 @@ export default function TaskListPage() {
                                         marginLeft: "8px",
                                       }}
                                     >
-                                      Save Status
+                                      Save
                                     </Button>
                                   </Box>
                                   <Flex gap="2" alignItems="center">

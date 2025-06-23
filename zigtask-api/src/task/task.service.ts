@@ -19,6 +19,23 @@ export class TaskService {
     private userRepository: Repository<User>,
   ) {}
 
+  async updateTaskStatusSocket(taskId: string, status: string): Promise<Task> {
+    // check if task exists
+    const existTask = await this.taskRepository.findOne({
+      where: { id: taskId },
+    });
+    if (!existTask) {
+      throw new NotFoundException('Task not found');
+    }
+
+    existTask.status = status as TASK_STATUS;
+
+    // update task status
+    const updated = await this.taskRepository.save(existTask);
+    console.log('Task status updated:', taskId, status);
+    return updated;
+  }
+
   async createTaskValidator(task: CreateTaskDto): Promise<void> {
     // check if dueDate is valid
     if (task.dueDate < new Date()) {
@@ -88,8 +105,6 @@ export class TaskService {
         endDate: end,
       });
     }
-
-    console.log('Query:', query.getSql());
 
     return await query.getMany();
   }
