@@ -8,9 +8,10 @@
 - **Language:** TypeScript
 - **Database:** PostgreSQL
 - **WebSocket:** Socket.IO
+- **Database ORM:** TypeORM
 - **Features:**
   - JWT-based authentication
-  - Refresh token stored in cookie
+  - Access token stored in cookie
   - Realtime task status updates via WebSockets
   - RESTful API for user and task management
 
@@ -24,7 +25,7 @@
   - Task creation and editing
   - Realtime task updates via WebSocket
   - Drag and drop tasks between status columns
-  - Filter tasks by status or due date
+  - Filter due date range
 
 ---
 
