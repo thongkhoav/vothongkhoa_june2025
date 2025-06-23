@@ -2,13 +2,19 @@
 
 ## 🛠 Tech Stack
 
-### Backend (NestJS)
+### CI/CD
+
+- Lint, Build front end project
+- Lint, Test and build backend project
+
+### Backend (NestJS), Port 3333
 
 - **Framework:** NestJS
 - **Language:** TypeScript
 - **Database:** PostgreSQL
 - **WebSocket:** Socket.IO
 - **Database ORM:** TypeORM
+- **Swagger URL:** {host}:{port}/api
 - **Features:**
   - JWT-based authentication
   - Access token stored in cookie
@@ -20,7 +26,13 @@
   - npm install
   - npm run start
 
-### Frontend (React)
+## Database Schema
+
+- **User**
+- **LoginSession**
+- **Task**
+
+### Frontend (React), Port 5173
 
 - **Framework:** React + TypeScript
 - **UI Library:** Chakra UI
@@ -35,11 +47,3 @@
   - Add .env file following the .env.example
   - npm install
   - npm run dev
-
----
-
-## 🧱 Database Schema
-
-- **User**
-- **LoginSession**
-- **Task**
