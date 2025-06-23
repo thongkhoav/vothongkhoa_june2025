@@ -37,7 +37,7 @@ export default function AppWrapper({
         navigate(PATH.LOGIN);
       }
     }
-  }, []);
+  }, [setUser, navigate]);
 
   return <div className="light">{children}</div>;
 }

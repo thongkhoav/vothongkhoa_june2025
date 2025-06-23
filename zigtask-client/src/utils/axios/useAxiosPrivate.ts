@@ -56,7 +56,7 @@ const useAxiosPrivate = () => {
       axiosBase.interceptors.request.eject(requestIntercept);
       axiosBase.interceptors.response.eject(responseIntercept);
     };
-  }, []);
+  }, [setUser, navigate]);
 
   return axiosBase;
 };

@@ -8,11 +8,7 @@ import useAuthStore from "@/store/useAuthStore";
 import useAxiosPrivate from "@/utils/axios/useAxiosPrivate";
 import { DateRangePicker } from "react-date-range";
 import { READ_ENV, TASK_STATUS } from "@/utils/constants";
-import type {
-  CreateTaskDto,
-  Task,
-  UpdateTaskDto,
-} from "@/utils/types/task.type";
+import type { CreateTaskDto, Task } from "@/utils/types/task.type";
 import {
   Text,
   List,
@@ -31,7 +27,7 @@ import {
   createListCollection,
   Popover,
 } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DatePicker from "react-datepicker";
 import { useForm, Controller } from "react-hook-form";
 import { toast } from "react-toastify";
@@ -113,17 +109,41 @@ export default function TaskListPage() {
     }
   };
 
+  const fetchTasks = useCallback(async () => {
+    try {
+      const data = await getTaskListApi(
+        axiosPrivate,
+        "",
+        searchQuery,
+        submitDateRange.startDate,
+        submitDateRange.endDate
+      );
+      setTasks(data);
+    } catch (error) {
+      console.error("Failed to fetch tasks:", error);
+      toast.error("Failed to fetch tasks. Please try again.");
+    }
+  }, [
+    axiosPrivate,
+    searchQuery,
+    submitDateRange.startDate,
+    submitDateRange.endDate,
+  ]);
+
   // Fetch tasks when the component mounts and set up socket listeners
   useEffect(() => {
     // Fetch tasks when the component mounts
     fetchTasks();
-    socket.on("task_updated", (task) => {
+    const handler = (task: Task) => {
       setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-    });
+    };
+    socket.on("task_updated", handler);
 
     // Cleanup the socket listener when the component unmounts
-    return () => socket.off("task_updated");
-  }, []);
+    return () => {
+      socket.off("task_updated", handler);
+    };
+  }, [fetchTasks]);
 
   useEffect(() => {
     // filter tasks based on their status
@@ -148,22 +168,6 @@ export default function TaskListPage() {
     formState: { errors },
     control,
   } = useForm<CreateTaskDto>();
-
-  const fetchTasks = async () => {
-    try {
-      const data = await getTaskListApi(
-        axiosPrivate,
-        "",
-        searchQuery,
-        submitDateRange.startDate,
-        submitDateRange.endDate
-      );
-      setTasks(data);
-    } catch (error) {
-      console.error("Failed to fetch tasks:", error);
-      toast.error("Failed to fetch tasks. Please try again.");
-    }
-  };
 
   // const onUpdateTaskStatus = async (task: Task, taskStatus: string) => {
   //   console.log("Updating task status:", task, taskStatus);
@@ -230,6 +234,7 @@ export default function TaskListPage() {
       if (updatingTaskId) {
         await updateTaskApi(axiosPrivate, updatingTaskId, data);
         toast.success("Task updated successfully!");
+        setUpdatingTaskId(null);
       } else {
         await createTaskApi(axiosPrivate, data);
         toast.success("Task created successfully!");
@@ -321,6 +326,12 @@ export default function TaskListPage() {
     }
   };
 
+  const onClickAddNewTask = () => {
+    setUpdatingTaskId(null);
+    resetForm();
+    setDialogOpen(true);
+  };
+
   return (
     <div className="flex justify-center min-h-screen">
       <Flex
@@ -369,7 +380,7 @@ export default function TaskListPage() {
               <Button
                 size="sm"
                 backgroundColor="blue.400"
-                onClick={() => setDialogOpen(true)}
+                onClick={onClickAddNewTask}
               >
                 Add New Task
               </Button>
@@ -445,7 +456,7 @@ export default function TaskListPage() {
                                 timeIntervals={15}
                                 timeCaption="Time"
                                 onChange={(date) => field.onChange(date)}
-                                dateFormat="yyyy-MM-dd"
+                                dateFormat="yyyy-MM-dd HH:mm"
                                 minDate={new Date()}
                                 className="w-full border h-8 px-2 rounded focus:outline-none focus:ring-0 focus:border-black"
                                 placeholderText="Select a due date"
@@ -650,7 +661,6 @@ export default function TaskListPage() {
                           <List.Item
                             paddingBottom="2"
                             key={item.id}
-                            borderBottom="1px solid #e2e8f0"
                             width={"100%"}
                           >
                             <Flex direction="row" gap="1" width={"100%"}>
@@ -727,9 +737,16 @@ export default function TaskListPage() {
                                     <LuCalendarCheck size={18} color="teal" />
                                     <Text textStyle="sm" color="gray.600">
                                       Due:{" "}
-                                      {new Date(
-                                        item.dueDate
-                                      ).toLocaleDateString()}
+                                      {new Date(item.dueDate).toLocaleString(
+                                        "en-US",
+                                        {
+                                          year: "numeric",
+                                          month: "short",
+                                          day: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        }
+                                      )}
                                     </Text>
                                   </Flex>
                                 </Flex>
